@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import sys
-
 import Image
 
 ### Globals
@@ -30,27 +28,39 @@ for i in xrange(32):
             v = 128 + ((-r + 2*g - b) >> 3)
             RGBtoYUV[ (i << 11) + (j << 5) + k ] = (Y << 16) + (u << 8) + v
 
-### Main
-infile, outfile = sys.argv[1:3]
-print infile, outfile
 
-source = Image.open(infile)
-w, h = source.size
-print source.format, source.size, source.mode
+def hq2x(source):
+    """Upscales a sprite image using the hq2x algorithm.
 
-dest = Image.new(source.mode, (w * 2, h * 2))
+    Argument is an Image object containing the source image.  Returns another
+    Image object containing the upscaled image.
+    """
 
-# These give direct pixel access via grid[x, y]
-sourcegrid = source.load()
-destgrid = dest.load()
+    w, h = source.size
+    dest = Image.new(source.mode, (w * 2, h * 2))
 
-for x in xrange(w):
-    for y in xrange(h):
-        px = sourcegrid[x, y]
-        destgrid[x * 2, y * 2] = px
-        destgrid[x * 2 + 1, y * 2] = px
-        destgrid[x * 2, y * 2 + 1] = px
-        destgrid[x * 2 + 1, y * 2 + 1] = px
+    # These give direct pixel access via grid[x, y]
+    sourcegrid = source.load()
+    destgrid = dest.load()
 
-dest.show()
-print sourcegrid[0, 0]
+    for x in xrange(w):
+        for y in xrange(h):
+            px = sourcegrid[x, y]
+            destgrid[x * 2, y * 2] = px
+            destgrid[x * 2 + 1, y * 2] = px
+            destgrid[x * 2, y * 2 + 1] = px
+            destgrid[x * 2 + 1, y * 2 + 1] = px
+
+    return dest
+
+
+### Main, if called from command line
+if __name__ == '__main__':
+    import sys
+
+    infile, outfile = sys.argv[1:3]
+    source = Image.open(infile)
+
+    dest = hq2x(source)
+
+    dest.show()
