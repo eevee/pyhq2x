@@ -2,31 +2,24 @@
 
 import Image
 
-### Globals
-LUT16to32 = [0] * 65536
-RGBtoYUV = [0] * 65536
-YUV1 = 0
-YUV2 = 0
-Ymask = 0x00FF0000
-Umask = 0x0000FF00
-Vmask = 0x000000FF
-trY   = 0x00300000
-trU   = 0x00000700
-trV   = 0x00000006
+def rgb_to_yuv(rgb):
+    """Takes a tuple of (r, g, b) and returns a tuple (y, u, v).  Both must be
+    24-bit color!
+    
+    This is the algorithm from the original hq2x source; it doesn't seem to
+    match any other algorithm I can find, but whatever.
+    """
 
-for i in xrange(65536):
-    LUT16to32[i] = ((i & 0xF800) << 8) + ((i & 0x07E0) << 5) + ((i & 0x001F) << 3)
+    if len(rgb) == 4:
+        # Might be rgba
+        r, g, b, a = rgb
+    else:
+        r, g, b = rgb
 
-for i in xrange(32):
-    for j in xrange(64):
-        for k in xrange(32):
-            r = i << 3
-            g = j << 2
-            b = k << 3
-            Y = (r + g + b) >> 2
-            u = 128 + ((r - b) >> 2)
-            v = 128 + ((-r + 2*g - b) >> 3)
-            RGBtoYUV[ (i << 11) + (j << 5) + k ] = (Y << 16) + (u << 8) + v
+    y = (r + g + b) >> 2
+    u = 128 + ((r - b) >> 2)
+    v = 128 + ((-r + g * 2 - b) >> 3)
+    return y, u, v
 
 
 def hq2x(source):
@@ -43,8 +36,34 @@ def hq2x(source):
     sourcegrid = source.load()
     destgrid = dest.load()
 
+    # Wrap sourcegrid in a function to cap the coordinates; we need a 3x3 array
+    # centered on the current pixel, and factoring out the capping is simpler
+    # than a ton of ifs
+    def get_px(x, y):
+        if x < 0:
+            x = 0
+        elif x >= w:
+            x = w - 1
+
+        if y < 0:
+            y = 0
+        elif y >= h:
+            y = h - 1
+
+        return sourcegrid[x, y]
+
     for x in xrange(w):
         for y in xrange(h):
+            # This is a 3x3 grid with the current pixel in the middle; if the
+            # pixel is on an edge, the row/column in the void is just a copy of
+            # the edge
+            context = [
+                [get_px(x - 1, y - 1), get_px(x, y - 1), get_px(x + 1, y - 1)],
+                [get_px(x - 1, y    ), get_px(x, y    ), get_px(x + 1, y    )],
+                [get_px(x - 1, y + 1), get_px(x, y + 1), get_px(x + 1, y + 1)],
+            ]
+            yuv_context = [[rgb_to_yuv(rgb) for rgb in row] for row in context]
+
             px = sourcegrid[x, y]
             destgrid[x * 2, y * 2] = px
             destgrid[x * 2 + 1, y * 2] = px
