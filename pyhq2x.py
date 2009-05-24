@@ -19,6 +19,7 @@ Y_THRESHHOLD = 48
 U_THRESHHOLD = 7
 V_THRESHHOLD = 6
 
+rgb_yuv_cache = {}  # memoization
 def rgb_to_yuv(rgb):
     """Takes a tuple of (r, g, b) and returns a tuple (y, u, v).  Both must be
     24-bit color!
@@ -27,15 +28,16 @@ def rgb_to_yuv(rgb):
     match any other algorithm I can find, but whatever.
     """
 
-    if len(rgb) == 4:
-        # Might be rgba
-        r, g, b, a = rgb
-    else:
-        r, g, b = rgb
+    if rgb in rgb_yuv_cache:
+        return rgb_yuv_cache[rgb]
+
+    r, g, b = rgb
 
     y = (r + g + b) >> 2
     u = 128 + ((r - b) >> 2)
     v = 128 + ((-r + g * 2 - b) >> 3)
+
+    rgb_yuv_cache[rgb] = y, u, v
     return y, u, v
 
 
@@ -64,7 +66,9 @@ def hq2x(source):
     """
 
     w, h = source.size
-    dest = Image.new(source.mode, (w * 2, h * 2))
+    mode = source.mode  # XXX use this for the target I guess somehow; palette?
+    source = source.convert('RGB')
+    dest = Image.new('RGB', (w * 2, h * 2))
 
     # These give direct pixel access via grid[x, y]
     sourcegrid = source.load()
