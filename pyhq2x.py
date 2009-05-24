@@ -1536,4 +1536,4 @@ if __name__ == '__main__':
 
     dest = hq2x(source)
 
-    dest.show()
+    dest.save(outfile)
