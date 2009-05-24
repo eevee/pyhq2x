@@ -58,6 +58,32 @@ def yuv_equal(a, b):
     return True
 
 
+### Various interpolations of colors done by hq2x
+def interpolate(func, *args):
+    return tuple(map(func, *args))
+
+def interp1(*args):
+    return interpolate(lambda a, b: (a * 3 + b) / 4, *args)
+
+def interp2(*args):
+    return interpolate(lambda a, b, c: (a * 2 + b + c) / 4, *args)
+
+def interp5(*args):
+    return interpolate(lambda a, b: (a + b) / 2, *args)
+
+def interp6(*args):
+    return interpolate(lambda a, b, c: (a*5 + b*2 + c) / 8, *args)
+
+def interp7(*args):
+    return interpolate(lambda a, b, c: (a*6 + b + c) / 8, *args)
+
+def interp9(*args):
+    return interpolate(lambda a, b, c: (a*2 + b*3 + c*3) / 8, *args)
+
+def interp10(*args):
+    return interpolate(lambda a, b, c: (a*14 + b + c) / 16, *args)
+
+
 def hq2x(source):
     """Upscales a sprite image using the hq2x algorithm.
 
